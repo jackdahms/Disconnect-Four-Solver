@@ -3,8 +3,8 @@ package com.jackdahms;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
+import java.awt.Point;
 import java.awt.event.ActionEvent;
-
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -52,9 +52,8 @@ public class Solver extends JPanel{
 		int colIncrement;
 		
 		Direction(int rowIncrement, int colIncrement) {
-			//I hate that I have to do this
-			this.rowIncrement = colIncrement;
-			this.colIncrement = rowIncrement;
+			this.rowIncrement = rowIncrement;
+			this.colIncrement = colIncrement;
 		}
 		
 		public int row(int row) {
@@ -64,13 +63,21 @@ public class Solver extends JPanel{
 		public int col(int col) {
 			return col += colIncrement;
 		}
+		
+		public int getRowIncrement() {
+			return rowIncrement;
+		}
+		
+		public int getColIncrement() {
+			return colIncrement;
+		}
 	}
 		
 	public Solver() {
 		setFocusable(true);
 		addKeyListener(new KeyAdapter() {
 			public void keyReleased(KeyEvent e) {
-				if (e.getKeyCode() == KeyEvent.VK_SPACE) {
+				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
 					solve();
 				}
 			}
@@ -81,19 +88,216 @@ public class Solver extends JPanel{
 				int y = e.getY();
 				//fuck me, these two assignments should be reversed but I must have fucked up somewhere.
 				//good thing its a square
-				int c = y / lineHeight;
-				int r = x / lineWidth;
+				int r = y / lineHeight;
+				int c = x / lineWidth;
 				data[r][c]++;
 				if (data[r][c] > 2)
 					data[r][c] = 0;
 				repaint();
-				println(checkPiece(r, c));
 			}
 		});
 	}
-	
-	public void solve() {
 		
+	public void solve() {
+		/**
+		 * do {
+		 *     check threes
+		 *     check two and ones
+		 * } while (three in a row || two and one)
+		 */
+		int simpleChecks = 0; //referring to number of three caps and two'n'one plugs
+		do {
+			simpleChecks += checkThrees();
+			simpleChecks += checkTwoAndOnes();
+			println(simpleChecks);
+		} while(simpleChecks > 0);
+		println("done checking caps and plugs");
+	}
+	
+	//returns number of caps placed
+	public int checkThrees() {
+		//modified checkBoard
+		int caps = 0;
+		//loop through every colored piece
+		rowLoop: for (int i = 0; i < rows; i++) {
+			for (int k = 0; k < cols; k++) {
+				if (data[i][k] > 0) {//first check if data is not blank, then if checkPiece returns false
+					caps += checkThreePiece(i, k);
+				}
+			}
+		}
+		return caps;
+	}
+	
+	public int checkThreePiece(int row, int col) {
+		//modified checkPiece
+		int vert = 1;
+		int horz = 1;
+		int diagTopLeft = 1;
+		int diagTopRight = 1;
+		
+		Point[] dirCaps = new Point[8];
+		
+		/**
+		 * if point in dir matches point{
+		 *     if (point in dir in dir matches point in dir {
+		 *         cap = point in dir in dir in dir 
+		 *     }
+		 */
+		
+		if (compare(Direction.N.row(row), Direction.N.col(col), row, col)) { //color matches north
+//			vert += recurseDirection(Direction.N.row(row), Direction.N.col(col), Direction.N, 2);
+			//if north match, north match again
+		} else {
+			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
+		}
+		
+		if (compare(Direction.NE.row(row), Direction.NE.col(col), row, col)) { //color matches north east
+			diagTopRight += recurseDirection(Direction.NE.row(row), Direction.NE.col(col), Direction.NE, 2);
+		} else {
+			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
+		}
+		
+		if (compare(Direction.E.row(row), Direction.E.col(col), row, col)) { //color matches east
+			horz += recurseDirection(Direction.E.row(row), Direction.E.col(col), Direction.E, 2);
+		} else {
+			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
+		}
+		
+		if (compare(Direction.SE.row(row), Direction.SE.col(col), row, col)) { //color matches south east
+			diagTopLeft += recurseDirection(Direction.SE.row(row), Direction.SE.col(col), Direction.SE, 2);
+		} else {
+			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
+		}
+		
+		if (compare(Direction.S.row(row), Direction.S.col(col), row, col)) { //color matches south
+			vert += recurseDirection(Direction.S.row(row), Direction.S.col(col), Direction.S, 2);
+		} else {
+			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
+		}
+		
+		if (compare(Direction.SW.row(row), Direction.SW.col(col), row, col)) { //color matches south west
+			diagTopRight += recurseDirection(Direction.SW.row(row), Direction.SW.col(col), Direction.SW, 2);
+		} else {
+			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
+		}
+		
+		if (compare(Direction.W.row(row), Direction.W.col(col), row, col)) { //color matches west
+			horz += recurseDirection(Direction.W.row(row), Direction.W.col(col), Direction.W, 2);
+		} else {
+			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
+		}
+		
+		if (compare(Direction.NW.row(row), Direction.NW.col(col), row, col)) { //color matches north west
+			diagTopLeft += recurseDirection(Direction.NW.row(row), Direction.NW.col(col), Direction.NW, 2);
+		} else {
+			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
+		}
+		
+		return 0;
+	}
+	
+	//returns number of plugs placed
+	public int checkTwoAndOnes() {
+		return 0;
+	}
+	
+	
+	
+	public boolean checkBoard() {
+		boolean good = true;
+		//loop through every colored piece
+		rowLoop: for (int i = 0; i < rows; i++) {
+			for (int k = 0; k < cols; k++) {
+				if (data[i][k] > 0 && !checkPiece(i, k)) {//first check if data is not blank, then if checkPiece returns false
+					good = false;
+					break rowLoop;// no sense in continuing, right?
+				}
+			}
+		}
+		return good;
+	}
+	
+	//checks whether piece is in a line of four
+	public boolean checkPiece(int r, int c) {
+		//I feel recursion coming on...
+		
+		//length of chain in the four directions
+		//starts at one because all chains have a base
+		int vert = 1;
+		int horz = 1;
+		int diagTopLeft = 1;
+		int diagTopRight = 1;
+		
+		//check surrounding eight pieces, if same color, mark direction
+		//check color in that direction, add to total length in that direction
+		//I hate this. There HAS to be a better way
+		//Note: I filled the whole board and piece by piece and the slowest one as 0.0016s on 12x12. That's an outlier, too.
+		if (compare(Direction.N.row(r), Direction.N.col(c), r, c)) { //color matches north
+			vert += recurseDirection(Direction.N.row(r), Direction.N.col(c), Direction.N, 2);
+		}
+		
+		if (compare(Direction.NE.row(r), Direction.NE.col(c), r, c)) { //color matches north east
+			diagTopRight += recurseDirection(Direction.NE.row(r), Direction.NE.col(c), Direction.NE, 2);
+		}
+		
+		if (compare(Direction.E.row(r), Direction.E.col(c), r, c)) { //color matches east
+			horz += recurseDirection(Direction.E.row(r), Direction.E.col(c), Direction.E, 2);
+		}
+		
+		if (compare(Direction.SE.row(r), Direction.SE.col(c), r, c)) { //color matches south east
+			diagTopLeft += recurseDirection(Direction.SE.row(r), Direction.SE.col(c), Direction.SE, 2);
+		}
+		
+		if (compare(Direction.S.row(r), Direction.S.col(c), r, c)) { //color matches south
+			vert += recurseDirection(Direction.S.row(r), Direction.S.col(c), Direction.S, 2);
+		}
+		
+		if (compare(Direction.SW.row(r), Direction.SW.col(c), r, c)) { //color matches south west
+			diagTopRight += recurseDirection(Direction.SW.row(r), Direction.SW.col(c), Direction.SW, 2);
+		}
+		
+		if (compare(Direction.W.row(r), Direction.W.col(c), r, c)) { //color matches west
+			horz += recurseDirection(Direction.W.row(r), Direction.W.col(c), Direction.W, 2);
+		}
+		
+		if (compare(Direction.NW.row(r), Direction.NW.col(c), r, c)) { //color matches north west
+			diagTopLeft += recurseDirection(Direction.NW.row(r), Direction.NW.col(c), Direction.NW, 2);
+		}
+		
+		//faster than three &&'s, right?
+		return !(vert > 3 || horz > 3 || diagTopLeft > 3 || diagTopRight > 3);
+	}
+	
+	public int getRowInDirection(int row, Direction direction, int step) {
+		if (step == 0)
+			return row;
+		else
+			return direction.getRowIncrement() + getRowInDirection(row, direction, --step);
+	}
+	
+	public int getColInDirection(int col, Direction direction, int step) {
+		if (step == 0)
+			return col;
+		else
+			return direction.getColIncrement() + getColInDirection(col, direction, --step);
+	}
+	
+	public int recurseDirection(int row, int col, Direction dir, int chainLength) {
+		if (chainLength > 4) //chains may become longer than is worth checking
+			return 0;
+		if (compare(dir.row(row), dir.col(col), row, col))
+			return 1 + recurseDirection(dir.row(row), dir.col(col), dir, ++chainLength);
+		else
+			return 1;
+	}
+	
+	public boolean compare(int r1, int c1, int r2, int c2) {
+		try {
+			return data[r1][c1] == data[r2][c2];
+		} catch (Exception e) { //rather than do all that expensive grid bound checking
+			return false;
+		}
 	}
 	
 	public void paintComponent(Graphics g) {
@@ -117,101 +321,13 @@ public class Solver extends JPanel{
 				if (data[i][k] == 1) {
 					//red
 					g.setColor(Color.red);
-					g.fillRect(lineWidth * i + i + 1, lineHeight * k + k + 1, lineWidth - 2, lineHeight - 2);
+					g.fillRect(lineWidth * k + k + 1, lineHeight * i + i + 1, lineWidth - 2, lineHeight - 2);
 				} else if (data[i][k] == 2) {
 					//yellow
 					g.setColor(Color.yellow);
-					g.fillRect(lineWidth * i + i + 1, lineHeight * k + k + 1, lineWidth - 2, lineHeight - 2);
+					g.fillRect(lineWidth * k + k + 1, lineHeight * i + i + 1, lineWidth - 2, lineHeight - 2);
 				}
 			}
-		}
-	}
-	
-	public boolean checkBoard() {
-		boolean good = true;
-		//loop through every colored piece
-		for (int i = 0; i < rows; i++) {
-			for (int k = 0; k < cols; k++) {
-				if (!checkPiece(i, k)) //if checkPiece returns false
-					good = false;
-			}
-		}
-		return good;
-	}
-	
-	//checks whether piece is in a line of four
-	public boolean checkPiece(int r, int c) {
-		//I feel recursion coming on...
-		
-		//length of chain in the four directions
-		//starts at one because all chains have a base
-		int vert = 1;
-		int horz = 1;
-		int diagTopLeft = 1;
-		int diagTopRight = 1;
-		
-		//check surrounding eight pieces, if same color, mark direction
-		//check color in that direction, add to total length in that direction
-		//I hate this. There HAS to be a better way
-		if (compare(Direction.N.row(r), Direction.N.col(c), r, c)) { //color matches north
-//			vert += recurseDirection(Direction.N.row(r), Direction.N.col(c), -1, 0, 2);
-			vert += recurseDirection(Direction.N.row(r), Direction.N.col(c), Direction.N, 2);
-		}
-		
-		if (compare(Direction.NE.row(r), Direction.NE.col(c), r, c)) { //color matches north east
-			diagTopRight += recurseDirection(Direction.NE.row(r), Direction.NE.col(c), Direction.NE, 2);
-		}
-		
-		if (compare(Direction.E.row(r), Direction.E.col(c), r, c)) { //color matches east
-			horz += recurseDirection(Direction.E.row(r), Direction.E.col(c), Direction.E, 2);
-		}
-		
-		if (compare(Direction.SE.row(r), Direction.SE.col(c), r, c)) { //color matches south east
-			diagTopLeft += recurseDirection(Direction.SE.row(r), Direction.SE.col(c), Direction.SE, 2);
-		}
-		
-		if (compare(Direction.S.row(r), Direction.S.col(c), r, c)) { //color matches south
-			vert += recurseDirection(Direction.S.row(r), Direction.S.col(c), Direction.S, 2);
-		}
-		
-		if (compare(Direction.SW.row(r), Direction.SW.col(c), r, c)) { //color matches south west
-
-			diagTopRight += recurseDirection(Direction.SW.row(r), Direction.SW.col(c), Direction.SW, 2);
-		}
-		
-		if (compare(Direction.W.row(r), Direction.W.col(c), r, c)) { //color matches west
-			horz += recurseDirection(Direction.W.row(r), Direction.W.col(c), Direction.W, 2);
-		}
-		
-		if (compare(Direction.NW.row(r), Direction.NW.col(c), r, c)) { //color matches north west
-			diagTopLeft += recurseDirection(Direction.NW.row(r), Direction.NW.col(c), Direction.NW, 2);
-		}
-		
-		//attempt at better way
-//		for (int i = r - 1; i <= r + 1; i++) {
-//			for (int k = c - 1; k <= c +1; k++) {
-//				
-//			}
-//		}
-		
-		//faster than three &&, right?
-		return !(vert > 3 || horz > 3 || diagTopLeft > 3 || diagTopRight > 3);
-	}
-	
-	public int recurseDirection(int row, int col, Direction dir, int chainLength) {
-		if (chainLength > 4) //chains may become longer than is worth checking
-			return 0;
-		if (compare(dir.row(row), dir.col(col), row, col))
-			return 1 + recurseDirection(dir.row(row), dir.col(col), dir, ++chainLength);
-		else
-			return 1;
-	}
-	
-	public boolean compare(int r1, int c1, int r2, int c2) {
-		try {
-			return data[r1][c1] == data[r2][c2];
-		} catch (Exception e) { //rather than do all that expensive grid bound checking
-			return false;
 		}
 	}
 	
