@@ -5,11 +5,6 @@ import java.awt.Dimension;
 import java.awt.Graphics;
 import java.awt.event.ActionEvent;
 
-
-
-
-
-
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
@@ -57,6 +52,7 @@ public class Solver extends JPanel{
 		int colIncrement;
 		
 		Direction(int rowIncrement, int colIncrement) {
+			//I hate that I have to do this
 			this.rowIncrement = colIncrement;
 			this.colIncrement = rowIncrement;
 		}
@@ -201,7 +197,7 @@ public class Solver extends JPanel{
 		return !(vert > 3 || horz > 3 || diagTopLeft > 3 || diagTopRight > 3);
 	}
 	
-	
+	//but wait Jack! rowInc and colInc are flipped! Why? Because fuck you! It works! I hate my life.
 	public int recurseDirection(int row, int col, int colIncrement, int rowIncrement, int chainLength) {
 		if (chainLength > 4) //chains may become longer than is worth checking
 			return 0;
