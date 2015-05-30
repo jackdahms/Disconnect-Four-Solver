@@ -154,36 +154,37 @@ public class Solver extends JPanel{
 		//check color in that direction, add to total length in that direction
 		//I hate this. There HAS to be a better way
 		if (compare(Direction.N.row(r), Direction.N.col(c), r, c)) { //color matches north
-			vert += recurseDirection(Direction.N.row(r), Direction.N.col(c), -1, 0, 2);
+//			vert += recurseDirection(Direction.N.row(r), Direction.N.col(c), -1, 0, 2);
+			vert += recurseDirection(Direction.N.row(r), Direction.N.col(c), Direction.N, 2);
 		}
 		
 		if (compare(Direction.NE.row(r), Direction.NE.col(c), r, c)) { //color matches north east
-			diagTopRight += recurseDirection(Direction.NE.row(r), Direction.NE.col(c), -1, 1, 2);
+			diagTopRight += recurseDirection(Direction.NE.row(r), Direction.NE.col(c), Direction.NE, 2);
 		}
 		
 		if (compare(Direction.E.row(r), Direction.E.col(c), r, c)) { //color matches east
-			horz += recurseDirection(Direction.E.row(r), Direction.E.col(c), 0, 1, 2);
+			horz += recurseDirection(Direction.E.row(r), Direction.E.col(c), Direction.E, 2);
 		}
 		
 		if (compare(Direction.SE.row(r), Direction.SE.col(c), r, c)) { //color matches south east
-			diagTopLeft += recurseDirection(Direction.SE.row(r), Direction.SE.col(c), 1, 1, 2);
+			diagTopLeft += recurseDirection(Direction.SE.row(r), Direction.SE.col(c), Direction.SE, 2);
 		}
 		
 		if (compare(Direction.S.row(r), Direction.S.col(c), r, c)) { //color matches south
-			vert += recurseDirection(Direction.S.row(r), Direction.S.col(c), 1, 0, 2);
+			vert += recurseDirection(Direction.S.row(r), Direction.S.col(c), Direction.S, 2);
 		}
 		
 		if (compare(Direction.SW.row(r), Direction.SW.col(c), r, c)) { //color matches south west
 
-			diagTopRight += recurseDirection(Direction.SW.row(r), Direction.SW.col(c), 1, -1, 2);
+			diagTopRight += recurseDirection(Direction.SW.row(r), Direction.SW.col(c), Direction.SW, 2);
 		}
 		
 		if (compare(Direction.W.row(r), Direction.W.col(c), r, c)) { //color matches west
-			horz += recurseDirection(Direction.W.row(r), Direction.W.col(c), 0, -1, 2);
+			horz += recurseDirection(Direction.W.row(r), Direction.W.col(c), Direction.W, 2);
 		}
 		
 		if (compare(Direction.NW.row(r), Direction.NW.col(c), r, c)) { //color matches north west
-			diagTopLeft += recurseDirection(Direction.NW.row(r), Direction.NW.col(c), -1, -1, 2);
+			diagTopLeft += recurseDirection(Direction.NW.row(r), Direction.NW.col(c), Direction.NW, 2);
 		}
 		
 		//attempt at better way
@@ -197,12 +198,11 @@ public class Solver extends JPanel{
 		return !(vert > 3 || horz > 3 || diagTopLeft > 3 || diagTopRight > 3);
 	}
 	
-	//but wait Jack! rowInc and colInc are flipped! Why? Because fuck you! It works! I hate my life.
-	public int recurseDirection(int row, int col, int colIncrement, int rowIncrement, int chainLength) {
+	public int recurseDirection(int row, int col, Direction dir, int chainLength) {
 		if (chainLength > 4) //chains may become longer than is worth checking
 			return 0;
-		if (compare(row + rowIncrement, col + colIncrement, row, col))
-			return 1 + recurseDirection(row + rowIncrement, col + colIncrement, colIncrement, rowIncrement, ++chainLength);
+		if (compare(dir.row(row), dir.col(col), row, col))
+			return 1 + recurseDirection(dir.row(row), dir.col(col), dir, ++chainLength);
 		else
 			return 1;
 	}
@@ -232,6 +232,7 @@ public class Solver extends JPanel{
 		ok.setPreferredSize(new Dimension(112, ok.getPreferredSize().height));
 		ok.addActionListener((ActionEvent e) ->
 		{
+			
 			try {
 				rows = Integer.parseInt(colsField.getText());
 				cols = Integer.parseInt(colsField.getText());
