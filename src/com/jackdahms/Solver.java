@@ -19,6 +19,7 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SpringLayout;
+import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 public class Solver extends JPanel{
@@ -39,21 +40,23 @@ public class Solver extends JPanel{
 	//algorhythmically solve
 	
 	enum Direction {
-		N(-1, 0), //up
-		NE(-1, 1), //up and right
-		E(0, 1), //right
-		SE(1, 1), //down and right
-		S(1, 0), //down
-		SW(1, -1), //down and left
-		W(0, -1), //left
-		NW(-1, -1); //up and left
+		N(-1, 0, 0), //up
+		NE(-1, 1, 1), //up and right
+		E(0, 1, 2), //right
+		SE(1, 1, 3), //down and right
+		S(1, 0, 4), //down
+		SW(1, -1, 5), //down and left
+		W(0, -1, 6), //left
+		NW(-1, -1, 7); //up and left
 		
 		int rowIncrement;
 		int colIncrement;
+		int index;
 		
-		Direction(int rowIncrement, int colIncrement) {
+		Direction(int rowIncrement, int colIncrement, int index) {
 			this.rowIncrement = rowIncrement;
 			this.colIncrement = colIncrement;
+			this.index = index;
 		}
 		
 		public int row(int row) {
@@ -72,7 +75,16 @@ public class Solver extends JPanel{
 			return colIncrement;
 		}
 	}
-		
+	
+	Direction[] directions = {Direction.N,
+							  Direction.S,
+							  Direction.NE,
+							  Direction.SW,
+							  Direction.E,
+							  Direction.W,
+							  Direction.SE,
+							  Direction.NW};
+	
 	public Solver() {
 		setFocusable(true);
 		addKeyListener(new KeyAdapter() {
@@ -107,10 +119,14 @@ public class Solver extends JPanel{
 		 */
 		int simpleChecks = 0; //referring to number of three caps and two'n'one plugs
 		do {
-			simpleChecks += checkThrees();
-			simpleChecks += checkTwoAndOnes();
+//			simpleChecks += checkThrees();
+//			simpleChecks += checkTwoAndOnes();
 			println(simpleChecks);
 		} while(simpleChecks > 0);
+		Thread brute = new Thread(new Runnable() {public void run() {
+			bruteForce();
+		}});
+		brute.start();
 		println("done checking caps and plugs");
 	}
 	
@@ -119,7 +135,7 @@ public class Solver extends JPanel{
 		//modified checkBoard
 		int caps = 0;
 		//loop through every colored piece
-		rowLoop: for (int i = 0; i < rows; i++) {
+		for (int i = 0; i < rows; i++) {
 			for (int k = 0; k < cols; k++) {
 				if (data[i][k] > 0) {//first check if data is not blank, then if checkPiece returns false
 					caps += checkThreePiece(i, k);
@@ -267,6 +283,105 @@ public class Solver extends JPanel{
 		
 		//faster than three &&'s, right?
 		return !(vert > 3 || horz > 3 || diagTopLeft > 3 || diagTopRight > 3);
+	}
+	
+	//lambda's, bitch! woohoo! //TODO organize methods
+	interface DataAction {
+		public void perEach(int val);
+	}
+	
+	public void forEach(DataAction action) {
+		for (int i = 0; i < data.length; i++) {
+			for (int k = 0; k < data[i].length; k++) {
+				action.perEach(data[i][k]);
+			}
+		}
+	}
+	
+	//like counting on your fingers in binary
+	public void bruteForce() {
+		println("init brute force");
+		int[][] originalData = new int[data.length][data[0].length];
+		boolean firstFound = true;
+		Point first;
+		Point last;
+		for (int i = 0; i < data.length; i++) {
+			for (int k = 0; k < data[i].length; k++) {
+				//keep the original data
+				originalData[i][k] = data[i][k];
+				//populate with reds
+				if (originalData[i][k] == 0) {
+					//find first point
+					if (firstFound) {
+						firstFound = false;
+						first = new Point(i, k);
+					}
+					data[i][k] = 1;
+					//find last variable point
+					last = new Point(i, k);
+				}
+			}
+		}
+		repaint();
+		println("start brute force");
+		
+		//TODO add check for four yellows in a row after shifting down
+		boolean iSaySo = true;
+		long start = System.nanoTime();
+		rowLoop: for (int i = 0; i < data.length; i++) {
+			for (int k = 0; k < data[0].length; k++) {
+				if (originalData[i][k] == 0) { //if valid position
+					if (checkBoard()) {
+						break rowLoop;
+					}
+					if (data[i][k] == 2) {
+						//do nothing, just needs to move on
+					} else if (data[i][k] == 1) {
+						data[i][k] = 2;
+						//wipe previous
+						for (int n = 0; n < i; n++) {
+							for (int m = 0; m < data[i].length; m++) {
+								if (originalData[n][m] == 0) //recheck validity
+									data[n][m] = 1;
+							}
+						}
+						//wipe only part of the last row
+						for (int m = 0; m < k; m++) {
+							if (originalData[i][m] == 0) //recheck validity
+								data[i][m] = 1;
+						}
+						/**
+						if (!checkBoard()) { //in case of lots of yellows
+							//find red after yellows
+							//set to yellow
+							//wipe previous
+						}
+						*/
+						//start at beginning
+						i = 0;
+						k = -1; //-1 because it increments after completing the loop
+					}
+//					repaint(); //comment out to save time
+				}
+			}
+		}
+		repaint();
+		println("total brute force: " + (System.nanoTime() - start) / Math.pow(10, 9));
+	}
+	
+	//returns next point after skipping originalData
+	public Point findNextValidPoint(int[][] originalData, int row, int col) {
+		boolean firstIteration = true;
+		for (int i = row; i < data.length; i++) {
+			for (int k = col; k < data[i].length; k++) {
+				if (firstIteration) { //otherwise if initial point wasn't in data, would return initial point. 
+					continue;         //can't simply increment i or k in case its the end of a row or column.
+				} else if (originalData[i][k] == 0) {
+					return new Point(i, k);
+				}
+			}
+		}
+		return null;
 	}
 	
 	public int getRowInDirection(int row, Direction direction, int step) {
