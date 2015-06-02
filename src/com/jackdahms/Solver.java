@@ -285,19 +285,6 @@ public class Solver extends JPanel{
 		return !(vert > 3 || horz > 3 || diagTopLeft > 3 || diagTopRight > 3);
 	}
 	
-	//lambda's, bitch! woohoo! //TODO organize methods
-	interface DataAction {
-		public void perEach(int val);
-	}
-	
-	public void forEach(DataAction action) {
-		for (int i = 0; i < data.length; i++) {
-			for (int k = 0; k < data[i].length; k++) {
-				action.perEach(data[i][k]);
-			}
-		}
-	}
-	
 	//like counting on your fingers in binary
 	public void bruteForce() {
 		println("init brute force");
@@ -361,7 +348,7 @@ public class Solver extends JPanel{
 						i = 0;
 						k = -1; //-1 because it increments after completing the loop
 					}
-//					repaint(); //comment out to save time
+					repaint(); //comment out to save time
 				}
 			}
 		}
