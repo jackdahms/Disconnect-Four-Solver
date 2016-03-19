@@ -31,14 +31,7 @@ public class Solver extends JPanel{
 	int lineHeight = 1;
 	
 	int[][] data = new int[1][1];
-	
-	//TODO
-	//decide whether enums are necessary
-	//refine checkpiece
-	//checkboard
-	//brute force solve
-	//algorhythmically solve
-	
+		
 	enum Direction {
 		N(-1, 0, 0), //up
 		NE(-1, 1, 1), //up and right
@@ -98,8 +91,6 @@ public class Solver extends JPanel{
 			public void mouseReleased(MouseEvent e) {
 				int x = e.getX();
 				int y = e.getY();
-				//fuck me, these two assignments should be reversed but I must have fucked up somewhere.
-				//good thing its a square
 				int r = y / lineHeight;
 				int c = x / lineWidth;
 				data[r][c]++;
@@ -223,8 +214,8 @@ public class Solver extends JPanel{
 	public boolean checkBoard() {
 		boolean good = true;
 		//loop through every colored piece
-		rowLoop: for (int i = 0; i < rows; i++) {
-			for (int k = 0; k < cols; k++) {
+		rowLoop: for (int i = rows - 1; i >= 0; i--) {
+			for (int k = cols - 1; k >= 0; k--) {
 				if (data[i][k] > 0 && !checkPiece(i, k)) {//first check if data is not blank, then if checkPiece returns false
 					good = false;
 					break rowLoop;// no sense in continuing, right?
@@ -233,8 +224,13 @@ public class Solver extends JPanel{
 		}
 		return good;
 	}
-	
-	//checks whether piece is in a line of four
+		
+	/**
+	 * Checks if piece is in a line of four
+	 * @param r		row of piece
+	 * @param c		column of piece
+	 * @return		if piece is not in a line of four
+	 */
 	public boolean checkPiece(int r, int c) {
 		//I feel recursion coming on...
 		
@@ -247,41 +243,35 @@ public class Solver extends JPanel{
 		
 		//check surrounding eight pieces, if same color, mark direction
 		//check color in that direction, add to total length in that direction
-		//I hate this. There HAS to be a better way
-		//Note: I filled the whole board and piece by piece and the slowest one as 0.0016s on 12x12. That's an outlier, too.
+		
 		if (compare(Direction.N.row(r), Direction.N.col(c), r, c)) { //color matches north
 			vert += recurseDirection(Direction.N.row(r), Direction.N.col(c), Direction.N, 2);
+			if (compare(Direction.S.row(r), Direction.S.col(c), r, c)) { //color matches south
+				vert += recurseDirection(Direction.S.row(r), Direction.S.col(c), Direction.S, 2);
+			}
 		}
 		
 		if (compare(Direction.NE.row(r), Direction.NE.col(c), r, c)) { //color matches north east
 			diagTopRight += recurseDirection(Direction.NE.row(r), Direction.NE.col(c), Direction.NE, 2);
+			if (compare(Direction.SW.row(r), Direction.SW.col(c), r, c)) { //color matches south west
+				diagTopRight += recurseDirection(Direction.SW.row(r), Direction.SW.col(c), Direction.SW, 2);
+			}
 		}
 		
 		if (compare(Direction.E.row(r), Direction.E.col(c), r, c)) { //color matches east
 			horz += recurseDirection(Direction.E.row(r), Direction.E.col(c), Direction.E, 2);
+			if (compare(Direction.W.row(r), Direction.W.col(c), r, c)) { //color matches west
+				horz += recurseDirection(Direction.W.row(r), Direction.W.col(c), Direction.W, 2);
+			}
 		}
 		
 		if (compare(Direction.SE.row(r), Direction.SE.col(c), r, c)) { //color matches south east
 			diagTopLeft += recurseDirection(Direction.SE.row(r), Direction.SE.col(c), Direction.SE, 2);
+			if (compare(Direction.NW.row(r), Direction.NW.col(c), r, c)) { //color matches north west
+				diagTopLeft += recurseDirection(Direction.NW.row(r), Direction.NW.col(c), Direction.NW, 2);
+			}
 		}
-		
-		if (compare(Direction.S.row(r), Direction.S.col(c), r, c)) { //color matches south
-			vert += recurseDirection(Direction.S.row(r), Direction.S.col(c), Direction.S, 2);
-		}
-		
-		if (compare(Direction.SW.row(r), Direction.SW.col(c), r, c)) { //color matches south west
-			diagTopRight += recurseDirection(Direction.SW.row(r), Direction.SW.col(c), Direction.SW, 2);
-		}
-		
-		if (compare(Direction.W.row(r), Direction.W.col(c), r, c)) { //color matches west
-			horz += recurseDirection(Direction.W.row(r), Direction.W.col(c), Direction.W, 2);
-		}
-		
-		if (compare(Direction.NW.row(r), Direction.NW.col(c), r, c)) { //color matches north west
-			diagTopLeft += recurseDirection(Direction.NW.row(r), Direction.NW.col(c), Direction.NW, 2);
-		}
-		
-		//faster than three &&'s, right?
+				
 		return !(vert > 3 || horz > 3 || diagTopLeft > 3 || diagTopRight > 3);
 	}
 	
@@ -385,8 +375,16 @@ public class Solver extends JPanel{
 			return direction.getColIncrement() + getColInDirection(col, direction, --step);
 	}
 	
+	/**
+	 * Returns length of chain containing the piece located at row, col
+	 * @param row			row of the piece to check
+	 * @param col			column of the piece to check
+	 * @param dir			direction to check chain in
+	 * @param chainLength	length of the current chain
+	 * @return
+	 */
 	public int recurseDirection(int row, int col, Direction dir, int chainLength) {
-		if (chainLength > 4) //chains may become longer than is worth checking
+		if (chainLength > 3) //chains may become longer than is worth checking
 			return 0;
 		if (compare(dir.row(row), dir.col(col), row, col))
 			return 1 + recurseDirection(dir.row(row), dir.col(col), dir, ++chainLength);
@@ -397,7 +395,7 @@ public class Solver extends JPanel{
 	public boolean compare(int r1, int c1, int r2, int c2) {
 		try {
 			return data[r1][c1] == data[r2][c2];
-		} catch (Exception e) { //rather than do all that expensive grid bound checking
+		} catch (Exception e) { //cannot compare tiles, e.i. if one is out of bounds
 			return false;
 		}
 	}
@@ -493,7 +491,7 @@ public class Solver extends JPanel{
 		JFrame frame = new JFrame();
 		frame.setTitle("Disconnect Four Solver (hit enter to start)");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(700, 700); //I imagine 600x600 as too small and 800x800 as too large
+		frame.setSize(700, 700); 
 		frame.setLocationRelativeTo(null);
 		
 		Solver s = new Solver();
