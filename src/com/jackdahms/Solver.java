@@ -257,30 +257,19 @@ public class Solver extends JPanel{
 	
 	//like counting on your fingers in binary
 	public void bruteForce() {
-		println("init brute force");
 		int[][] originalData = new int[data.length][data[0].length];
-		boolean firstFound = true;
 		for (int i = 0; i < data.length; i++) {
 			for (int k = 0; k < data[i].length; k++) {
 				//keep the original data
 				originalData[i][k] = data[i][k];
 				//populate with reds
 				if (originalData[i][k] == 0) {
-					//find first point
-					if (firstFound) {
-						firstFound = false;
-					}
 					data[i][k] = 1;
-					//find last variable point
 				}
 			}
 		}
 		repaint();
-		println("start brute force");
 		
-		//TODO add check for four yellows in a row after shifting down
-		boolean iSaySo = true;
-		long start = System.nanoTime();
 		rowLoop: for (int i = 0; i < data.length; i++) {
 			for (int k = 0; k < data[0].length; k++) {
 				if (originalData[i][k] == 0) { //if valid position
@@ -319,7 +308,6 @@ public class Solver extends JPanel{
 			}
 		}
 		repaint();
-		println("total brute force: " + (System.nanoTime() - start) / Math.pow(10, 9));
 	}
 		
 	/**
@@ -461,14 +449,6 @@ public class Solver extends JPanel{
 		frame.setVisible(true);
 		
 		s.getRowsAndCols();
-	}
-	
-	public static void print(Object o) {
-		System.out.print(o);
-	}
-	
-	public static void println(Object o) {
-		System.out.println(o);
 	}
 	
 }
