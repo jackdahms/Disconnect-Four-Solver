@@ -108,14 +108,18 @@ public class Solver extends JPanel{
 	
 	public void solve() {	
 		
-		boolean updated = false;
-		do {
-			updated = checkCapsAndPlugs();
-			updateCheckedTiles();
-			repaint();
-		} while (updated);
-		
-		if (!checkBoard()) bruteForce();
+		new Thread(() -> { //separate thread so solving doesn't interfere with frame or repainting
+			boolean updated = false;
+			do {
+				updated = checkCapsAndPlugs();
+				updateCheckedTiles();
+			} while (updated);
+			
+			if (!checkBoard()) {
+				System.out.println("br");
+				bruteForce();
+			}
+		}).start();
 	}
 	
 	/**
@@ -154,6 +158,7 @@ public class Solver extends JPanel{
 									data[r][c] = 1;
 								
 								updated = true;
+								repaint();
 							}
 						} catch (Exception e) {}
 						
@@ -178,6 +183,7 @@ public class Solver extends JPanel{
 									data[r][c] = 1;
 								
 								updated = true;
+								repaint();
 							}
 						} catch (Exception e) {}
 					}
@@ -186,49 +192,6 @@ public class Solver extends JPanel{
 		}
 		return updated;
 	}
-
-	//returns number of plugs placed
-	public int checkPlugs() {
-		int plugsPlaced = 0;
-				
-		for (int r = 0; r < rows; r++) {
-			for (int c = 0; c < cols; c++) {
-				if (check[r][c] == 0) {
-					for (Direction dir : Direction.values()) {
-						int chainLength = 0;
-						
-						try {
-							int dr = r + dir.rowIncrement;
-							int dc = c + dir.colIncrement;
-							if (check[dr][dc] == 2) {
-								chainLength += recurseDirection(dr, dc, dir, 0);
-							}
-							
-							int nr = r - dir.rowIncrement;
-							int nc = c - dir.colIncrement;
-							if (check[nr][nc] == 2) {
-								chainLength += recurseDirection(nr, nc, dir.opposite, 0);
-							}
-							
-							if (chainLength > 2 && compare(dr, dc, nr, nc)) {
-								if (data[nr][nc] == 1) 
-									data[r][c] = 2;
-								else 
-									data[r][c] = 1;
-								
-								plugsPlaced++;
-							}
-						} catch (Exception e) {}
-					}
-				}
-			}
-		}
-		
-		
-		
-		return plugsPlaced;
-	}
-	
 	
 	public boolean checkBoard() {
 		boolean good = true;
@@ -297,8 +260,6 @@ public class Solver extends JPanel{
 		println("init brute force");
 		int[][] originalData = new int[data.length][data[0].length];
 		boolean firstFound = true;
-		Point first;
-		Point last;
 		for (int i = 0; i < data.length; i++) {
 			for (int k = 0; k < data[i].length; k++) {
 				//keep the original data
@@ -308,11 +269,9 @@ public class Solver extends JPanel{
 					//find first point
 					if (firstFound) {
 						firstFound = false;
-						first = new Point(i, k);
 					}
 					data[i][k] = 1;
 					//find last variable point
-					last = new Point(i, k);
 				}
 			}
 		}
@@ -362,36 +321,7 @@ public class Solver extends JPanel{
 		repaint();
 		println("total brute force: " + (System.nanoTime() - start) / Math.pow(10, 9));
 	}
-	
-	//returns next point after skipping originalData
-	public Point findNextValidPoint(int[][] originalData, int row, int col) {
-		boolean firstIteration = true;
-		for (int i = row; i < data.length; i++) {
-			for (int k = col; k < data[i].length; k++) {
-				if (firstIteration) { //otherwise if initial point wasn't in data, would return initial point. 
-					continue;         //can't simply increment i or k in case its the end of a row or column.
-				} else if (originalData[i][k] == 0) {
-					return new Point(i, k);
-				}
-			}
-		}
-		return null;
-	}
-	
-	public int getRowInDirection(int row, Direction direction, int step) {
-		if (step == 0)
-			return row;
-		else
-			return direction.getRowIncrement() + getRowInDirection(row, direction, --step);
-	}
-	
-	public int getColInDirection(int col, Direction direction, int step) {
-		if (step == 0)
-			return col;
-		else
-			return direction.getColIncrement() + getColInDirection(col, direction, --step);
-	}
-	
+		
 	/**
 	 * Returns length of chain containing the piece located at row, col
 	 * @param row			row of the piece to check
@@ -412,7 +342,7 @@ public class Solver extends JPanel{
 	public boolean compare(int r1, int c1, int r2, int c2) {
 		try {
 			return data[r1][c1] == data[r2][c2];
-		} catch (Exception e) { //cannot compare tiles, e.i. if one is out of bounds
+		} catch (Exception e) { //happens when tiles cannot be compared, i.e. if one is out of bounds
 			return false;
 		}
 	}
@@ -420,7 +350,7 @@ public class Solver extends JPanel{
 	public void paintComponent(Graphics g) {
 		g.setColor(Color.black);
 		g.fillRect(0, 0, getWidth(), getHeight());
-		
+		System.out.println("hey");
 		g.setColor(Color.lightGray);
 		lineWidth = getWidth() / (cols);
 		lineHeight = getHeight() / (rows);
