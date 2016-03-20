@@ -338,18 +338,20 @@ public class Solver extends JPanel{
 	public void paintComponent(Graphics g) {
 		g.setColor(Color.black);
 		g.fillRect(0, 0, getWidth(), getHeight());
-		System.out.println("hey");
 		g.setColor(Color.lightGray);
 		lineWidth = getWidth() / (cols);
 		lineHeight = getHeight() / (rows);
+		
 		//horizontal lines
 		for (int i = 0; i < rows - 1; i++) {
 			g.drawLine(0, lineHeight * (i + 1) + i, getWidth(), lineHeight * (i + 1) + i);
 		}
+		
 		//vertical lines
 		for (int i = 0; i < cols - 1; i++) {
 			g.drawLine(lineWidth * (i + 1) + i, 0, lineWidth * (i + 1) + i, getHeight());
 		}
+		
 		//data
 		for (int i = 0; i < rows; i++) {
 			for (int k = 0; k < cols; k++) {
