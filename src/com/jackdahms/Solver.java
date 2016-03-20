@@ -31,7 +31,8 @@ public class Solver extends JPanel{
 	int lineHeight = 1;
 	
 	int[][] data = new int[1][1];
-		
+	int[][] check = new int[1][1];	
+	
 	enum Direction {
 		N(-1, 0, 0), //up
 		NE(-1, 1, 1), //up and right
@@ -45,6 +46,8 @@ public class Solver extends JPanel{
 		int rowIncrement;
 		int colIncrement;
 		int index;
+		
+		Direction opposite;
 		
 		Direction(int rowIncrement, int colIncrement, int index) {
 			this.rowIncrement = rowIncrement;
@@ -83,6 +86,7 @@ public class Solver extends JPanel{
 		addKeyListener(new KeyAdapter() {
 			public void keyReleased(KeyEvent e) {
 				if (e.getKeyCode() == KeyEvent.VK_ENTER) {
+					updateCheckedTiles();
 					solve();
 				}
 			}
@@ -101,122 +105,137 @@ public class Solver extends JPanel{
 		});
 	}
 		
-	public void solve() {
-		/**
-		 * do {
-		 *     check threes
-		 *     check two and ones
-		 * } while (three in a row || two and one)
-		 */
-		int simpleChecks = 0; //referring to number of three caps and two'n'one plugs
+	
+	public void solve() {	
+		
+		boolean updated = false;
 		do {
-//			simpleChecks += checkThrees();
-//			simpleChecks += checkTwoAndOnes();
-			println(simpleChecks);
-		} while(simpleChecks > 0);
-		Thread brute = new Thread(new Runnable() {public void run() {
-			bruteForce();
-		}});
-		brute.start();
-		println("done checking caps and plugs");
+			updated = checkCapsAndPlugs();
+			updateCheckedTiles();
+			repaint();
+		} while (updated);
+		
+		if (!checkBoard()) bruteForce();
 	}
 	
-	//returns number of caps placed
-	public int checkThrees() {
-		//modified checkBoard
-		int caps = 0;
-		//loop through every colored piece
+	/**
+	 * Updates which tiles to check based on data.
+	 */
+	public void updateCheckedTiles() {
+		//if tile is filled, mark it as 2
 		for (int i = 0; i < rows; i++) {
 			for (int k = 0; k < cols; k++) {
-				if (data[i][k] > 0) {//first check if data is not blank, then if checkPiece returns false
-					caps += checkThreePiece(i, k);
+				if (data[i][k] > 0) check[i][k] = 2;
+			}
+		}
+	}
+	
+	/**
+	 * Checks for logical places tiles need to be placed. This includes caps on the ends of threes-in-a-row and plugs in twos-and-ones
+	 * @return number of caps found
+	 */
+	public boolean checkCapsAndPlugs() {
+		
+		boolean updated = false;
+		
+		for (int r = 0; r < rows; r++) {
+			for (int c = 0; c < cols; c++) {
+				if (check[r][c] == 0) {
+					for (Direction dir : Direction.values()) {
+						int dr = r + dir.rowIncrement;
+						int dc = c + dir.colIncrement;
+						
+						//check for caps on the end of threes
+						try {
+							if (check[dr][dc] == 2 && recurseDirection(dr, dc, dir, 0) > 2) {								
+								if (data[dr][dc] == 1) 
+									data[r][c] = 2;
+								else 
+									data[r][c] = 1;
+								
+								updated = true;
+							}
+						} catch (Exception e) {}
+						
+						int chainLength = 0;
+						
+						//check for plugs in between twos and ones
+						try {
+							if (check[dr][dc] == 2) {
+								chainLength += recurseDirection(dr, dc, dir, 0);
+							}
+							
+							int nr = r - dir.rowIncrement;
+							int nc = c - dir.colIncrement;
+							if (check[nr][nc] == 2) {
+								chainLength += recurseDirection(nr, nc, dir.opposite, 0);
+							}
+							
+							if (chainLength > 2 && compare(dr, dc, nr, nc)) {
+								if (data[nr][nc] == 1) 
+									data[r][c] = 2;
+								else 
+									data[r][c] = 1;
+								
+								updated = true;
+							}
+						} catch (Exception e) {}
+					}
 				}
 			}
 		}
-		return caps;
+		return updated;
 	}
-	
-	public int checkThreePiece(int row, int col) {
-		//modified checkPiece
-		int vert = 1;
-		int horz = 1;
-		int diagTopLeft = 1;
-		int diagTopRight = 1;
-		
-		Point[] dirCaps = new Point[8];
-		
-		/**
-		 * if point in dir matches point{
-		 *     if (point in dir in dir matches point in dir {
-		 *         cap = point in dir in dir in dir 
-		 *     }
-		 */
-		
-		if (compare(Direction.N.row(row), Direction.N.col(col), row, col)) { //color matches north
-//			vert += recurseDirection(Direction.N.row(row), Direction.N.col(col), Direction.N, 2);
-			//if north match, north match again
-		} else {
-			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
-		}
-		
-		if (compare(Direction.NE.row(row), Direction.NE.col(col), row, col)) { //color matches north east
-			diagTopRight += recurseDirection(Direction.NE.row(row), Direction.NE.col(col), Direction.NE, 2);
-		} else {
-			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
-		}
-		
-		if (compare(Direction.E.row(row), Direction.E.col(col), row, col)) { //color matches east
-			horz += recurseDirection(Direction.E.row(row), Direction.E.col(col), Direction.E, 2);
-		} else {
-			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
-		}
-		
-		if (compare(Direction.SE.row(row), Direction.SE.col(col), row, col)) { //color matches south east
-			diagTopLeft += recurseDirection(Direction.SE.row(row), Direction.SE.col(col), Direction.SE, 2);
-		} else {
-			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
-		}
-		
-		if (compare(Direction.S.row(row), Direction.S.col(col), row, col)) { //color matches south
-			vert += recurseDirection(Direction.S.row(row), Direction.S.col(col), Direction.S, 2);
-		} else {
-			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
-		}
-		
-		if (compare(Direction.SW.row(row), Direction.SW.col(col), row, col)) { //color matches south west
-			diagTopRight += recurseDirection(Direction.SW.row(row), Direction.SW.col(col), Direction.SW, 2);
-		} else {
-			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
-		}
-		
-		if (compare(Direction.W.row(row), Direction.W.col(col), row, col)) { //color matches west
-			horz += recurseDirection(Direction.W.row(row), Direction.W.col(col), Direction.W, 2);
-		} else {
-			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
-		}
-		
-		if (compare(Direction.NW.row(row), Direction.NW.col(col), row, col)) { //color matches north west
-			diagTopLeft += recurseDirection(Direction.NW.row(row), Direction.NW.col(col), Direction.NW, 2);
-		} else {
-			dirCaps[0] = new Point(Direction.N.row(row), Direction.N.col(col));
-		}
-		
-		return 0;
-	}
-	
+
 	//returns number of plugs placed
-	public int checkTwoAndOnes() {
-		return 0;
+	public int checkPlugs() {
+		int plugsPlaced = 0;
+				
+		for (int r = 0; r < rows; r++) {
+			for (int c = 0; c < cols; c++) {
+				if (check[r][c] == 0) {
+					for (Direction dir : Direction.values()) {
+						int chainLength = 0;
+						
+						try {
+							int dr = r + dir.rowIncrement;
+							int dc = c + dir.colIncrement;
+							if (check[dr][dc] == 2) {
+								chainLength += recurseDirection(dr, dc, dir, 0);
+							}
+							
+							int nr = r - dir.rowIncrement;
+							int nc = c - dir.colIncrement;
+							if (check[nr][nc] == 2) {
+								chainLength += recurseDirection(nr, nc, dir.opposite, 0);
+							}
+							
+							if (chainLength > 2 && compare(dr, dc, nr, nc)) {
+								if (data[nr][nc] == 1) 
+									data[r][c] = 2;
+								else 
+									data[r][c] = 1;
+								
+								plugsPlaced++;
+							}
+						} catch (Exception e) {}
+					}
+				}
+			}
+		}
+		
+		
+		
+		return plugsPlaced;
 	}
-	
 	
 	
 	public boolean checkBoard() {
 		boolean good = true;
-		//loop through every colored piece
+		//checks from the last piece backwards because if there is an error at the end, we don't need to check all the pieces in the beginning
 		rowLoop: for (int i = rows - 1; i >= 0; i--) {
 			for (int k = cols - 1; k >= 0; k--) {
-				if (data[i][k] > 0 && !checkPiece(i, k)) {//first check if data is not blank, then if checkPiece returns false
+				if (checkPiece(i, k)) {
 					good = false;
 					break rowLoop;// no sense in continuing, right?
 				}
@@ -231,9 +250,7 @@ public class Solver extends JPanel{
 	 * @param c		column of piece
 	 * @return		if piece is not in a line of four
 	 */
-	public boolean checkPiece(int r, int c) {
-		//I feel recursion coming on...
-		
+	public boolean checkPiece(int r, int c) {		
 		//length of chain in the four directions
 		//starts at one because all chains have a base
 		int vert = 1;
@@ -272,7 +289,7 @@ public class Solver extends JPanel{
 			}
 		}
 				
-		return !(vert > 3 || horz > 3 || diagTopLeft > 3 || diagTopRight > 3);
+		return vert > 3 || horz > 3 || diagTopLeft > 3 || diagTopRight > 3;
 	}
 	
 	//like counting on your fingers in binary
@@ -431,6 +448,9 @@ public class Solver extends JPanel{
 		}
 	}
 	
+	/**
+	 * Asks user how large to make the grid
+	 */
 	public void getRowsAndCols() {
 		JFrame frame = new JFrame();
 		frame.setTitle("Enter number of rows and columns");
@@ -453,10 +473,10 @@ public class Solver extends JPanel{
 				rows = Integer.parseInt(colsField.getText());
 				cols = Integer.parseInt(colsField.getText());
 				data = new int[rows][cols];
+				check = new int[data.length][data.length];
 				repaint();
 				frame.dispose();
 			} catch (Exception ex) {
-				//I don't need no stinkin' imports!
 				javax.swing.JOptionPane.showMessageDialog(null, "Something fucked up (hint: it was you). Make sure there are no letters in the fields.",
 						"Good job.", javax.swing.JOptionPane.ERROR_MESSAGE);
 			}
@@ -493,6 +513,16 @@ public class Solver extends JPanel{
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
 		frame.setSize(700, 700); 
 		frame.setLocationRelativeTo(null);
+		
+		//cannot mention an object before definition, so this cannot be done in direction's constructor
+		Direction.N.opposite = Direction.S;
+		Direction.NE.opposite = Direction.SW;
+		Direction.E.opposite = Direction.W;
+		Direction.SE.opposite = Direction.NW;
+		Direction.S.opposite = Direction.N;
+		Direction.SW.opposite = Direction.NE;
+		Direction.W.opposite = Direction.E;
+		Direction.NW.opposite = Direction.SE;
 		
 		Solver s = new Solver();
 		
