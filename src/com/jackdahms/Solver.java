@@ -3,15 +3,11 @@ package com.jackdahms;
 import java.awt.Color;
 import java.awt.Dimension;
 import java.awt.Graphics;
-import java.awt.Point;
 import java.awt.event.ActionEvent;
 import java.awt.event.KeyAdapter;
 import java.awt.event.KeyEvent;
 import java.awt.event.MouseAdapter;
 import java.awt.event.MouseEvent;
-import java.util.ArrayList;
-import java.util.Arrays;
-import java.util.List;
 
 import javax.swing.JButton;
 import javax.swing.JFrame;
@@ -19,7 +15,6 @@ import javax.swing.JLabel;
 import javax.swing.JPanel;
 import javax.swing.JTextField;
 import javax.swing.SpringLayout;
-import javax.swing.SwingUtilities;
 import javax.swing.UIManager;
 
 public class Solver extends JPanel{
@@ -375,7 +370,7 @@ public class Solver extends JPanel{
 		JFrame frame = new JFrame();
 		frame.setTitle("Enter number of rows and columns");
 		frame.setDefaultCloseOperation(JFrame.EXIT_ON_CLOSE);
-		frame.setSize(100, 100); //eh
+		frame.setSize(300, 100); //eh
 		frame.setLocationRelativeTo(null);
 		
 		JPanel pane = new JPanel();
@@ -383,9 +378,9 @@ public class Solver extends JPanel{
 		
 		JLabel colsLabel = new JLabel("Size:");
 		JTextField colsField = new JTextField();
-		colsField.setPreferredSize(new Dimension(colsLabel.getPreferredSize().width, colsField.getPreferredSize().height));
+		colsField.setPreferredSize(new Dimension(30, colsField.getPreferredSize().height));
 		JButton ok = new JButton("OK");
-		ok.setPreferredSize(new Dimension(112, ok.getPreferredSize().height));
+		ok.setPreferredSize(new Dimension(110, ok.getPreferredSize().height));
 		ok.addActionListener((ActionEvent e) ->
 		{
 			
@@ -397,20 +392,20 @@ public class Solver extends JPanel{
 				repaint();
 				frame.dispose();
 			} catch (Exception ex) {
-				javax.swing.JOptionPane.showMessageDialog(null, "Something fucked up (hint: it was you). Make sure there are no letters in the fields.",
+				javax.swing.JOptionPane.showMessageDialog(null, "Something goofed up (hint: it was you). Make sure there are no letters in the fields.",
 						"Good job.", javax.swing.JOptionPane.ERROR_MESSAGE);
 			}
 		});
 						
 		layout.putConstraint(SpringLayout.WEST, colsLabel, 0, SpringLayout.WEST, ok);
-		layout.putConstraint(SpringLayout.NORTH, colsLabel, 2, SpringLayout.NORTH, colsField);
+		layout.putConstraint(SpringLayout.NORTH, colsLabel, 4, SpringLayout.NORTH, colsField);
 		pane.add(colsLabel);
 		
 		layout.putConstraint(SpringLayout.EAST, colsField, 0, SpringLayout.EAST, ok);
 		layout.putConstraint(SpringLayout.SOUTH, colsField, -5, SpringLayout.NORTH, ok);
 		pane.add(colsField);
 		
-		layout.putConstraint(SpringLayout.WEST, ok, 5, SpringLayout.WEST, pane);
+		layout.putConstraint(SpringLayout.HORIZONTAL_CENTER, ok, 0, SpringLayout.HORIZONTAL_CENTER, pane);
 		layout.putConstraint(SpringLayout.SOUTH, ok, -5, SpringLayout.SOUTH, pane);
 		pane.add(ok);
 		
